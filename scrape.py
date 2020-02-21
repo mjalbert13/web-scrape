@@ -2,47 +2,53 @@ import requests
 import pandas
 from bs4 import BeautifulSoup
 
-r = requests.get("http://www.pyclass.com/real-estate/rock-springs-wy/LCWYROCKSPRINGS/", headers={'User-agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:61.0) Gecko/20100101 Firefox/61.0'})
-c = r.content
-soup = BeautifulSoup(c,"html.parser")
-
-divs = soup.find_all("div",{"class":"propertyRow"})
-
-price = divs[0].find("h4",{"class":"propPrice"}).text.replace("\n",'').replace(" ","")
-
 houseData= []
+base_url ="http://www.pyclass.com/real-estate/rock-springs-wy/LCWYROCKSPRINGS/t=0&s="
 
-for item in divs:
-    d={}
-    d["Price"]=item.find("h4",{"class":"propPrice"}).text.replace("\n",'').replace(" ","")
-    d["Street"]=item.find_all("span", {"class":"propAddressCollapse"})[0].text
-    d["Address"]=item.find_all("span", {"class":"propAddressCollapse"})[1].text
-    try:
-        d["Bedrooms"]=item.find("span",{"class":"infoBed"}).find("b").text
-    except:
-        d["Bedrooms"]=None
+for page in range(0,30,10):
+    print(base_url+str(page)+".html")
+    r = requests.get(base_url+str(page)+".html", headers={'User-agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:61.0) Gecko/20100101 Firefox/61.0'})
+    c = r.content
+    soup = BeautifulSoup(c,"html.parser")
 
-    try:
-        d["SqFt"]=item.find("span",{"class":"infoSqFt"}).find("b").text
-    except:
-        d["SqFt"]=None
+    divs = soup.find_all("div",{"class":"propertyRow"})
 
-    try:
-        d["Full Bathrooms"]=item.find("span",{"class":"infoValueFullBath"}).find("b").text
-    except:
-        d["Full Bathrooms"]=None
+    price = divs[0].find("h4",{"class":"propPrice"}).text.replace("\n",'').replace(" ","")
 
-    try:
-        d["Half Baths"]=item.find("span",{"class":"infoValueHalfBath"}).find("b").text
-    except:
-        d["Half Baths"]=None
+    for item in divs:
+        d={}
+        d["Price"]=item.find("h4",{"class":"propPrice"}).text.replace("\n",'').replace(" ","")
+        d["Street"]=item.find_all("span", {"class":"propAddressCollapse"})[0].text
+        try:
+            d["Address"]=item.find_all("span", {"class":"propAddressCollapse"})[1].text
+        except:
+            d["Address"]=None
+        try:
+            d["Bedrooms"]=item.find("span",{"class":"infoBed"}).find("b").text
+        except:
+            d["Bedrooms"]=None
 
-    for column_group in item.find_all("div",{"class":"columnGroup"}):
-        for feature ,name in zip(column_group.find_all("span",{"class":"featureGroup"}), column_group.find_all("span",{"class":"featureName"})):
-            if "Lot Size" in feature.text:
-                d["Lot Size"]= name.text
-    
-    houseData.append(d)
+        try:
+            d["SqFt"]=item.find("span",{"class":"infoSqFt"}).find("b").text
+        except:
+            d["SqFt"]=None
+
+        try:
+            d["Full Bathrooms"]=item.find("span",{"class":"infoValueFullBath"}).find("b").text
+        except:
+            d["Full Bathrooms"]=None
+
+        try:
+            d["Half Baths"]=item.find("span",{"class":"infoValueHalfBath"}).find("b").text
+        except:
+            d["Half Baths"]=None
+
+        for column_group in item.find_all("div",{"class":"columnGroup"}):
+            for feature ,name in zip(column_group.find_all("span",{"class":"featureGroup"}), column_group.find_all("span",{"class":"featureName"})):
+                if "Lot Size" in feature.text:
+                    d["Lot Size"]= name.text
+        
+        houseData.append(d)
 
 df = pandas.DataFrame(houseData)
 df.to_csv("Output.csv")
